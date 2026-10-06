@@ -52,7 +52,7 @@ docker network prune
 
 ## 🚀 Script veya Compose İle Çalıştırma
 
-### Yöntem A: Script İle İnteraktif TemizlikYöntem A: Script İle İnteraktif Temizlik
+### Yöntem A: Script İle İnteraktif Temizlik
 ```bash
 chmod +x clean.sh
 ./clean.sh
