@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  docker-cleaner:
+    image: docker:cli
+    container_name: ready_docker_cleaner
+    restart: always
+    # Her 24 saatte bir (86400 saniye) kullanılmayan öğeleri ve volume'ları temizler
+    command: >
+      sh -c "while true; do
+        echo '[CLEANER] Otomatik Docker temizliği başlatılıyor...';
+        docker system prune -a --volumes -f;
+        echo '[CLEANER] Temizlik bitti. 24 saat bekleniyor...';
+        sleep 86400;
+      done"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
