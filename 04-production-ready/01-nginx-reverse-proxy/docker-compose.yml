@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  proxy:
+    image: nginx:alpine
+    container_name: prod_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - prod-net
+
+  app:
+    image: python:3.11-alpine
+    command: >
+      sh -c "pip install flask && python -c '
+      from flask import Flask
+      import socket
+
+      app = Flask(__name__)
+      hostname = socket.gethostname()
+
+      @app.route(\"/\")
+      def index():
+          return f\"Yanit Veren Konteyner (Hostname): {hostname}\\n\"
+
+      app.run(host=\"0.0.0.0\", port=5000)
+      '"
+    networks:
+      - prod-net
+
+networks:
+  prod-net:
+    driver: bridge

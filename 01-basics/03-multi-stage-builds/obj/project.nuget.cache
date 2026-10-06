@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "G351YKNna78=",
+  "success": true,
+  "projectFilePath": "/home/ufuk/dev/projects/docker-labs/01-basics/03-multi-stage-builds/WebApi.csproj",
+  "expectedPackageFiles": [
+    "/home/ufuk/.nuget/packages/microsoft.netcore.app.ref/9.0.20/microsoft.netcore.app.ref.9.0.20.nupkg.sha512",
+    "/home/ufuk/.nuget/packages/microsoft.aspnetcore.app.ref/9.0.20/microsoft.aspnetcore.app.ref.9.0.20.nupkg.sha512",
+    "/home/ufuk/.nuget/packages/microsoft.netcore.app.host.linux-x64/9.0.20/microsoft.netcore.app.host.linux-x64.9.0.20.nupkg.sha512"
+  ],
+  "logs": []
+}

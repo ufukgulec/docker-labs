@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # İnternete ve dış dünyaya kapalı, sadece iç ağda çalışan PostgreSQL veritabanı
+  db:
+    image: postgres:15-alpine
+    container_name: isolated_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: appdb
+    networks:
+      - internal-net
+
+  # Hem dış dünyaya port açan hem de DB ile aynı iç ağda olan API/Web servisi
+  web:
+    image: python:3.11-alpine
+    container_name: isolated_web
+    command: >
+      sh -c "pip install flask && python -c '
+      from flask import Flask
+      import urllib.request
+      app = Flask(__name__)
+
+      @app.route(\"/\")
+      def home():
+          return \"Web Servisi Ayakta!\"
+
+      @app.route(\"/test-db\")
+      def test_db():
+          # DB portuna (5432) soket erişim testi
+          import socket
+          s = socket.socket()
+          s.settimeout(2)
+          try:
+              s.connect((\"isolated_db\", 5432))
+              s.close()
+              return \"DB Sunucusuna Erisim Basarili (Port 5432 Open)\"
+          except Exception as e:
+              return f\"DB Erisim Hatasi: {e}\"
+
+      app.run(host=\"0.0.0.0\", port=8080)
+      '"
+    ports:
+      - "8080:8080"
+    networks:
+      - external-net
+      - internal-net
+
+networks:
+  # Dış dünya erişimi ve port publishing için kullanılan ağ
+  external-net:
+    driver: bridge
+
+  # Sadece konteynerların kendi arasında konuşabildiği izole ağ
+  internal-net:
+    driver: bridge
+    internal: true # Dış internete çıkışı ve dışarıdan doğrudan erişimi engeller

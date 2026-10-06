@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: msg_rabbitmq
+    ports:
+      - "5672:5672"   # AMQP Mesaj Portu
+      - "15672:15672" # RabbitMQ Management Web Paneli
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - msg-net
+
+  producer:
+    image: python:3.11-alpine
+    container_name: msg_producer
+    command: >
+      sh -c "pip install pika && python -c '
+      import pika, time, json
+
+      # RabbitMQ hazır olana kadar kısa bekleme
+      time.sleep(3)
+      connection = pika.BlockingConnection(pika.ConnectionParameters(\"rabbitmq\"))
+      channel = connection.channel()
+      channel.queue_declare(queue=\"task_queue\", durable=True)
+
+      for i in range(1, 6):
+          payload = {\"task_id\": i, \"message\": f\"Islem #{i} kurgulandi\"}
+          channel.basic_publish(
+              exchange=\"\",
+              routing_key=\"task_queue\",
+              body=json.dumps(payload),
+              properties=pika.BasicProperties(delivery_mode=2) # Mesajı kalıcı yap
+          )
+          print(f\"[PRODUCER] Gonderildi: {payload}\", flush=True)
+          time.sleep(2)
+
+      connection.close()
+      '"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - msg-net
+
+  consumer:
+    image: python:3.11-alpine
+    container_name: msg_consumer
+    command: >
+      sh -c "pip install pika && python -c '
+      import pika, time, json
+
+      time.sleep(3)
+      connection = pika.BlockingConnection(pika.ConnectionParameters(\"rabbitmq\"))
+      channel = connection.channel()
+      channel.queue_declare(queue=\"task_queue\", durable=True)
+
+      def callback(ch, method, properties, body):
+          data = json.loads(body)
+          print(f\"[CONSUMER] Islendi: {data}\", flush=True)
+          ch.basic_ack(delivery_tag=method.delivery_tag)
+
+      channel.basic_consume(queue=\"task_queue\", on_message_callback=callback)
+      print(\"[CONSUMER] Kuyruk dinleniyor...\", flush=True)
+      channel.start_consuming()
+      '"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - msg-net
+
+networks:
+  msg-net:
+    driver: bridge

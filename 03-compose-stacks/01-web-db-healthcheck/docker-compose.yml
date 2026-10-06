@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: healthcheck_db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    # Postgres sadece ayağa kalktı mı değil, sorgu almaya hazır mı kontrol ediyoruz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d appdb"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-net
+
+  web:
+    image: python:3.11-alpine
+    container_name: healthcheck_web
+    command: >
+      sh -c "pip install flask && python -c '
+      from flask import Flask, jsonify
+      import socket, os
+
+      app = Flask(__name__)
+
+      @app.route(\"/\")
+      def index():
+          host = os.environ.get(\"DB_HOST\", \"db\")
+          port = int(os.environ.get(\"DB_PORT\", 5432))
+          s = socket.socket()
+          s.settimeout(2)
+          try:
+              s.connect((host, port))
+              s.close()
+              return jsonify({\"status\": \"success\", \"message\": \"DB baglantisi basarili! (Healthy DB Startup)\"})
+          except Exception as e:
+              return jsonify({\"status\": \"error\", \"message\": str(e)}), 500
+
+      app.run(host=\"0.0.0.0\", port=8000)
+      '"
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    # DB motoru 'healthy' durumuna gelmeden web servisini BAŞLATMA
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge

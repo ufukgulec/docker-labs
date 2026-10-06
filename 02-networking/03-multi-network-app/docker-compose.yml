@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # 1. Frontend Katmanı (Sadece dış dünyaya ve API'ye erişebilir)
+  frontend:
+    image: nginx:alpine
+    container_name: tier_frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend-net
+
+  # 2. Backend API Katmanı (Frontend ve DB arasında köprü)
+  backend-api:
+    image: python:3.11-alpine
+    container_name: tier_api
+    command: >
+      sh -c "pip install flask && python -c '
+      from flask import Flask, jsonify
+      import socket
+      app = Flask(__name__)
+
+      @app.route(\"/api/data\")
+      def get_data():
+          # DB soket kontrolü
+          s = socket.socket()
+          s.settimeout(2)
+          db_status = \"Disconnected\"
+          try:
+              s.connect((\"tier_db\", 5432))
+              s.close()
+              db_status = \"Connected (Port 5432 Open)\"
+          except Exception as e:
+              db_status = f\"Error: {e}\"
+
+          return jsonify({
+              \"service\": \"Backend API\",
+              \"database_status\": db_status
+          })
+
+      app.run(host=\"0.0.0.0\", port=5000)
+      '"
+    networks:
+      - frontend-net
+      - backend-net
+
+  # 3. Veritabanı Katmanı (Sadece Backend ağında - Frontend burayı göremez)
+  database:
+    image: postgres:15-alpine
+    container_name: tier_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: appdb
+    networks:
+      - backend-net
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge

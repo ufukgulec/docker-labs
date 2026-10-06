@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  web:
+    image: python:3.11-alpine
+    container_name: redis_web
+    command: >
+      sh -c "pip install flask redis && python -c '
+      from flask import Flask, jsonify
+      import redis, os
+
+      app = Flask(__name__)
+      r = redis.Redis(host=os.environ.get(\"REDIS_HOST\", \"redis\"), port=6379, socket_timeout=2)
+
+      @app.route(\"/\")
+      def count():
+          try:
+              visits = r.incr(\"counter\")
+              return jsonify({
+                  \"status\": \"success\",
+                  \"visit_count\": visits,
+                  \"message\": f\"Bu sayfa toplam {visits} kez ziyaret edildi!\"
+              })
+          except Exception as e:
+              return jsonify({\"status\": \"error\", \"message\": str(e)}), 500
+
+      app.run(host=\"0.0.0.0\", port=5000)
+      '"
+    ports:
+      - "5000:5000"
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      - redis
+    networks:
+      - cache-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    # Redis verilerini named volume ile kalıcı hale getiriyoruz
+    volumes:
+      - redis_data:/data
+    networks:
+      - cache-net
+
+volumes:
+  redis_data:
+
+networks:
+  cache-net:
+    driver: bridge
