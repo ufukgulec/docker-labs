@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "cJ3fG22i+jE=",
+  "success": true,
+  "projectFilePath": "/home/ufuk/dev/projects/docker-labs/07-dotnet-dockerize/02-redis-cache/Api/Api.csproj",
+  "expectedPackageFiles": [
+    "/home/ufuk/.nuget/packages/microsoft.extensions.caching.stackexchangeredis/10.0.0/microsoft.extensions.caching.stackexchangeredis.10.0.0.nupkg.sha512",
+    "/home/ufuk/.nuget/packages/pipelines.sockets.unofficial/2.2.8/pipelines.sockets.unofficial.2.2.8.nupkg.sha512",
+    "/home/ufuk/.nuget/packages/stackexchange.redis/2.7.27/stackexchange.redis.2.7.27.nupkg.sha512"
+  ],
+  "logs": []
+}
