@@ -1,0 +1,41 @@
+services:
+  dotnet-api:
+    build:
+      context: ./Api
+      dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - lab-network
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "5000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      dotnet-api:
+        condition: service_healthy
+    networks:
+      - lab-network
+
+  dotnet-client:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile
+    container_name: dotnet-client
+    environment:
+      - API_BASE_URL=http://nginx-proxy:80
+    depends_on:
+      - nginx-proxy
+    networks:
+      - lab-network
+
+networks:
+  lab-network:
+    driver: bridge
